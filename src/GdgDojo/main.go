@@ -12,7 +12,7 @@ func main() {
 	defer logger.Sync()
 
 	// conectando db
-	dsn := "host=localhost user=postgres password=default dbname=postgres port=5432 sslmode=disable"
+	dsn := "host=localhost user=postgres password=admin dbname=postgres port=5432 sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		logger.Fatal("Falha em connectar com o banco de dados", zap.Error(err))
@@ -21,8 +21,9 @@ func main() {
 		logger.Fatal("Falha em migrar o banco de dados", zap.Error(err))
 	} 
 
-	//createProduct(db, logger, 50,"sabato",150.0)
-	findID(db,logger, 5)
+	//createProduct(db, logger, 50,"caneta",10.0)
+	//findID(db,logger, 1)
+	updateById(db, logger, 2, "acerola", 10, 3.00)
 }
 
 func createProduct (db *gorm.DB, logger *zap.Logger, quantidade int, product string, price float64) {
@@ -48,6 +49,22 @@ func findID(db *gorm.DB, logger *zap.Logger, id uint) {
 	//fmt.Printf("Produto ID: %d\n", produto.ID)
 }
 
+func updateById(db *gorm.DB, logger *zap.Logger, id uint, product string, quantidade int, price float64) {
+  var produtoAntigo Estoque
+  // Buscar o produto pelo ID
+  res := db.First(&produtoAntigo, id)
+  if res.Error != nil {
+    logger.Fatal("Falha em encontrar o produto", zap.Uint("ID", id), zap.Error(res.Error))
+    return
+  }
+  // Atualizar o produto
+  err := db.Model(&produtoAntigo).Updates(map[string]interface{}{"Product": product, "Quantidade": quantidade, "Price": price}).Error
+	if(err != nil) {
+		logger.Error("Falha em atualizar o produto", zap.Uint("ID", id), zap.Error(err))
+	} else {
+		logger.Info("Produto atualizado com sucesso", zap.Uint("ID", id),zap.String("Product", product), zap.Int("Quantidade", quantidade),zap.Float64("Price", price))
+	}
+}
 type Estoque struct {
 	gorm.Model
 	Quantidade int
