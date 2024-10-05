@@ -23,7 +23,8 @@ func main() {
 
 	//createProduct(db, logger, 50,"caneta",10.0)
 	//findID(db,logger, 1)
-	updateById(db, logger, 2, "acerola", 10, 3.00)
+	//updateById(db, logger, 2, "acerola", 10, 3.00)
+	removeById(db, logger, 3)
 }
 
 func createProduct (db *gorm.DB, logger *zap.Logger, quantidade int, product string, price float64) {
@@ -37,16 +38,16 @@ func createProduct (db *gorm.DB, logger *zap.Logger, quantidade int, product str
 }
 
 // função para buscar o id de um produto
-func findID(db *gorm.DB, logger *zap.Logger, id uint) {
+func findID(db *gorm.DB, logger *zap.Logger, id uint) (*Estoque, error){
 	var produto Estoque
-
 	res := db.First(&produto, id)
 	if(res.Error != nil) {
 		logger.Fatal("Falha ao procurar produto", zap.Uint("ID", id), zap.Error(res.Error))
-		return
+		return nil, res.Error
 	}
 	logger.Info("Produto encontrado", zap.Uint("ID", produto.ID), zap.String("Product",produto.Product))
-	//fmt.Printf("Produto ID: %d\n", produto.ID)
+
+	return &produto, nil
 }
 
 func updateById(db *gorm.DB, logger *zap.Logger, id uint, product string, quantidade int, price float64) {
@@ -65,10 +66,25 @@ func updateById(db *gorm.DB, logger *zap.Logger, id uint, product string, quanti
 		logger.Info("Produto atualizado com sucesso", zap.Uint("ID", id),zap.String("Product", product), zap.Int("Quantidade", quantidade),zap.Float64("Price", price))
 	}
 }
+
+func removeById(db *gorm.DB, logger *zap.Logger, id uint) {
+	product , err := findID(db, logger, id)
+	if err != nil {
+		logger.Error("Erro em encontrar", zap.Uint("ID", id))
+		return
+	}
+	res := db.Delete(&product)
+	if(res.Error != nil) {
+		logger.Error("Erro em remover", zap.Uint("ID", id))
+		return
+	}
+	logger.Info("Produto removido", zap.Uint("ID", id))
+}
 type Estoque struct {
 	gorm.Model
 	Quantidade int
 	Product    string
 	Price      float64
 }
+ 
 
